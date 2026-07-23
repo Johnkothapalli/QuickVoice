@@ -97,6 +97,7 @@ class LangfuseHandlerTests(unittest.TestCase):
             tracer.finalize(
                 ended_at=datetime(2026, 1, 1, 0, 0, 5, tzinfo=timezone.utc),
                 transcript=[{"role": "user", "content": "private text"}],
+                status="SMOKE_COMPLETED",
             )
 
         self.assertEqual(client.root.name, "quickvoice.voice_session")
@@ -106,6 +107,10 @@ class LangfuseHandlerTests(unittest.TestCase):
         self.assertTrue(client.flushed)
         self.assertEqual(client.root.updates[-1]["output"]["durationSeconds"], 5)
         self.assertEqual(client.root.updates[-1]["output"]["transcriptCount"], 1)
+        call_completed = next(
+            child for child in client.root.children if child.name == "evaluation.call_completed"
+        )
+        self.assertEqual(call_completed.kwargs["input"], {"value": True, "status": "SMOKE_COMPLETED"})
 
 
 if __name__ == "__main__":

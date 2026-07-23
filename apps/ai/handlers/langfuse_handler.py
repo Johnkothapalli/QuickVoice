@@ -8,6 +8,7 @@ from utils.logger import logger, redact_sensitive
 
 
 TRUE_VALUES = {"1", "true", "yes", "on"}
+SUCCESS_STATUSES = {"COMPLETED", "PREVIEW_COMPLETED", "SMOKE_COMPLETED"}
 
 
 def langfuse_enabled() -> bool:
@@ -123,7 +124,7 @@ class LangfuseCallTracer:
             )
             self._record_evaluation_event(
                 "call_completed",
-                {"value": status == "COMPLETED", "status": status},
+                {"value": status in SUCCESS_STATUSES, "status": status},
             )
             self._record_evaluation_event(
                 "transcript_turn_count",
