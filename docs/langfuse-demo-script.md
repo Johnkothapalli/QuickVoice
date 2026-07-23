@@ -95,7 +95,7 @@ callId
 agentId
 provider/model metadata
 transcript.user and transcript.agent observations
-evaluation.call_completed
+evaluation.call_completed with value true
 evaluation.transcript_turn_count
 ```
 
