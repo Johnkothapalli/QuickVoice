@@ -32,3 +32,12 @@ Use `https://us.cloud.langfuse.com`, `https://jp.cloud.langfuse.com`, or a self-
 3. Speak or send a few transcript turns.
 4. End the session.
 5. Open Langfuse and filter traces by `quickvoice.voice_session` or the `callId` shown in QuickVoice logs.
+
+If LiveKit credentials are not available yet, run the local smoke script to verify Langfuse ingestion with the same tracing helper used by the worker:
+
+```sh
+cd apps/ai
+python scripts/langfuse_trace_smoke.py
+```
+
+Then open Langfuse and filter for `quickvoice.voice_session` or the printed `langfuse-smoke-*` call ID.
