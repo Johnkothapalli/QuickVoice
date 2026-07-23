@@ -10,12 +10,17 @@ SYNTHETIC_AGENT_PREFIX = "agent-transcript-"
 class TranscriptCollector:
     def __init__(
         self,
-        on_item: Callable[[dict[str, Any]], None] | None = None,
+        on_item: Callable[[dict[str, Any]], None] | list[Callable[[dict[str, Any]], None]] | None = None,
     ) -> None:
         self._items: list[dict[str, Any]] = []
         self._seen_ids: set[str] = set()
         self._last_final_user_transcript: str | None = None
-        self._on_item = on_item
+        if isinstance(on_item, list):
+            self._on_items = on_item
+        elif on_item is None:
+            self._on_items = []
+        else:
+            self._on_items = [on_item]
 
     def attach(self, session: Any) -> "TranscriptCollector":
         session.on("conversation_item_added", self.on_conversation_item_added)
@@ -106,14 +111,13 @@ class TranscriptCollector:
 
     def _append(self, item: dict[str, Any]) -> None:
         self._items.append(item)
-        if self._on_item is None:
-            return
-        try:
-            self._on_item(dict(item))
-        except Exception:
-            # Live monitoring is optional and must never break transcript
-            # collection or the voice session.
-            return
+        for on_item in self._on_items:
+            try:
+                on_item(dict(item))
+            except Exception:
+                # Live monitoring and observability hooks are optional and must
+                # never break transcript collection or the voice session.
+                continue
 
     def _replace_matching_synthetic_turn(
         self,
