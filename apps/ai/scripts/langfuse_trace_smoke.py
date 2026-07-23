@@ -63,6 +63,9 @@ def main() -> int:
         started_at=started_at,
     )
     tracer.start()
+    if not getattr(tracer, "_trace", None):
+        print("Langfuse tracer did not start. Check SDK installation, keys, and base URL.")
+        return 1
     tracer.on_transcript_item(
         {
             "id": "demo-user-1",
