@@ -41,3 +41,5 @@ python scripts/langfuse_trace_smoke.py
 ```
 
 Then open Langfuse and filter for `quickvoice.voice_session` or the printed `langfuse-smoke-*` call ID.
+
+For a suggested screen-recording flow, see [docs/langfuse-demo-script.md](./langfuse-demo-script.md).
