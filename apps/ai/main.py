@@ -20,6 +20,7 @@ from handlers.config_handler import get_config
 from handlers.finalization_handler import CallFinalizer
 from handlers.livekit_handler import recording_path as build_recording_path, start_recording
 from handlers.live_transcript_publisher import LiveTranscriptPublisher
+from handlers.langfuse_handler import LangfuseCallTracer
 from handlers.http_tool_handler import build_http_tool_instructions, call_http_tool, parse_http_tool_arguments
 from handlers.mcp_handler import build_mcp_tool_instructions, call_mcp_tool, parse_arguments_json
 from handlers.privacy_handler import should_store_call_audio
@@ -515,6 +516,13 @@ async def entrypoint(ctx: JobContext):
         preemptive_generation=config.get("preemptive_generation", True),
     )
     call_start_time = datetime.now(timezone.utc)
+    langfuse_tracer = LangfuseCallTracer(
+        config=config,
+        call_context=call_context,
+        room_name=ctx.room.name,
+        started_at=call_start_time,
+    )
+    langfuse_tracer.start()
     live_transcript_publisher = LiveTranscriptPublisher(
         config=config,
         call_context=call_context,
@@ -523,7 +531,10 @@ async def entrypoint(ctx: JobContext):
     if not preview_mode:
         await live_transcript_publisher.start(call_start_time)
     transcript_collector = TranscriptCollector(
-        on_item=live_transcript_publisher.publish_transcript
+        on_item=[
+            live_transcript_publisher.publish_transcript,
+            langfuse_tracer.on_transcript_item,
+        ],
     ).attach(session)
     system_prompt = build_agent_instructions(config)
     agent = Assistant(
@@ -576,8 +587,13 @@ async def entrypoint(ctx: JobContext):
             agent=agent,
             room_options=build_room_options(),
         )
-    except Exception:
+    except Exception as error:
         await live_transcript_publisher.close(reason="session_start_failed")
+        langfuse_tracer.finalize(
+            transcript=transcript_collector.read(),
+            status="ERROR",
+            error=str(error),
+        )
         raise
     speak_first_message(session, config)
 
@@ -607,11 +623,25 @@ async def entrypoint(ctx: JobContext):
                 redact_sensitive(str(error)),
             )
         if preview_mode:
+            langfuse_tracer.finalize(
+                transcript=transcript_collector.read(),
+                status="PREVIEW_COMPLETED",
+            )
             return
         try:
             await call_finalizer.finalize()
         except Exception as error:
             logger.error("[CALL_LOG] Failed to finalize completed call: {}", redact_sensitive(str(error)))
+            langfuse_tracer.finalize(
+                transcript=transcript_collector.read(),
+                status="ERROR",
+                error=str(error),
+            )
+            return
+        langfuse_tracer.finalize(
+            transcript=transcript_collector.read(),
+            status="COMPLETED",
+        )
 
     if hasattr(ctx, "add_shutdown_callback"):
         ctx.add_shutdown_callback(unified_shutdown_hook)

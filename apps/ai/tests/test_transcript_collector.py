@@ -18,6 +18,16 @@ class FakeSession:
 
 
 class TranscriptCollectorTests(unittest.TestCase):
+    def test_notifies_each_registered_callback(self):
+        first = []
+        second = []
+        collector = TranscriptCollector(on_item=[first.append, second.append])
+
+        collector.on_agent_transcription_final("Hello")
+
+        self.assertEqual(first, collector.read())
+        self.assertEqual(second, collector.read())
+
     def test_attach_registers_session_handlers_and_collects_conversation_items(self):
         session = FakeSession()
         collector = TranscriptCollector().attach(session)

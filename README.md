@@ -154,6 +154,8 @@ QuickVoice keeps the LiveKit voice runtime inside `apps/ai`, so a fork can bring
 
 The default catalog supports Deepgram and Sarvam for STT, AWS Bedrock for LLMs, and ElevenLabs or Sarvam for TTS. Override the built-in catalog with `VOICE_CATALOG_PATH` if your fork needs different providers, model labels, languages, or voices.
 
+For observability and evaluation, the AI worker can send voice-session traces to Langfuse. See [docs/langfuse-integration.md](./docs/langfuse-integration.md) for setup, privacy controls, and demo steps.
+
 Add real values to `apps/ai/.env.dev` before running live voice sessions:
 
 ```sh
