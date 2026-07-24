@@ -130,6 +130,17 @@ class LangfuseCallTracer:
                 "transcript_turn_count",
                 {"value": transcript_count},
             )
+            self._record_score(
+                "call_completed",
+                1.0 if status in SUCCESS_STATUSES else 0.0,
+                data_type="BOOLEAN",
+                comment=f"Final call status: {status}",
+            )
+            self._record_score(
+                "transcript_turn_count",
+                float(transcript_count),
+                data_type="NUMERIC",
+            )
             self._trace.end()
             if flush:
                 self.flush()
@@ -148,12 +159,35 @@ class LangfuseCallTracer:
     def _record_evaluation_event(self, name: str, value: dict[str, Any]) -> None:
         if not self._trace:
             return
-        event = self._trace.start_observation(
-            name=f"evaluation.{name}",
-            as_type="evaluator",
-            input=value,
-        )
-        event.end()
+        try:
+            event = self._trace.start_observation(
+                name=f"evaluation.{name}",
+                as_type="evaluator",
+                input=value,
+            )
+            event.end()
+        except Exception as error:
+            logger.debug("[LANGFUSE] evaluation event skipped: {}", redact_sensitive(str(error)))
+
+    def _record_score(
+        self,
+        name: str,
+        value: float,
+        *,
+        data_type: str,
+        comment: str | None = None,
+    ) -> None:
+        if not self._trace:
+            return
+        try:
+            self._trace.score_trace(
+                name=name,
+                value=value,
+                data_type=data_type,
+                comment=comment,
+            )
+        except Exception as error:
+            logger.debug("[LANGFUSE] score skipped: {}", redact_sensitive(str(error)))
 
     def _get_client(self):
         if self._client is not None:

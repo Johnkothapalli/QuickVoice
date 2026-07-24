@@ -15,6 +15,7 @@ class FakeObservation:
         self.name = name
         self.children = []
         self.updates = []
+        self.scores = []
         self.ended = False
 
     def start_observation(self, name, **kwargs):
@@ -30,6 +31,9 @@ class FakeObservation:
     def end(self):
         self.ended = True
         return self
+
+    def score_trace(self, **kwargs):
+        self.scores.append(kwargs)
 
 
 class FakeClient:
@@ -111,6 +115,51 @@ class LangfuseHandlerTests(unittest.TestCase):
             child for child in client.root.children if child.name == "evaluation.call_completed"
         )
         self.assertEqual(call_completed.kwargs["input"], {"value": True, "status": "SMOKE_COMPLETED"})
+        self.assertEqual(
+            client.root.scores,
+            [
+                {
+                    "name": "call_completed",
+                    "value": 1.0,
+                    "data_type": "BOOLEAN",
+                    "comment": "Final call status: SMOKE_COMPLETED",
+                },
+                {
+                    "name": "transcript_turn_count",
+                    "value": 1.0,
+                    "data_type": "NUMERIC",
+                    "comment": None,
+                },
+            ],
+        )
+
+    def test_zero_pii_retention_redacts_content_but_preserves_turn_count(self):
+        client = FakeClient()
+        tracer = LangfuseCallTracer(
+            config={"agent_id": "agent-1", "zero_pii_retention": True},
+            call_context={"call_id": "call-1"},
+            room_name="room-1",
+            started_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+            client=client,
+            enabled=True,
+        )
+
+        with patch.dict(os.environ, {"LANGFUSE_CAPTURE_TRANSCRIPTS": "true"}, clear=False):
+            tracer.start()
+            tracer.on_transcript_item({"role": "user", "content": "private text"})
+            tracer.finalize(
+                transcript=[
+                    {"role": "user", "content": "private text"},
+                    {"role": "agent", "content": "private reply"},
+                ]
+            )
+
+        self.assertEqual(client.root.children[0].kwargs["input"]["content"], "[redacted]")
+        self.assertEqual(client.root.updates[-1]["output"]["transcriptCount"], 2)
+        turn_count = next(
+            score for score in client.root.scores if score["name"] == "transcript_turn_count"
+        )
+        self.assertEqual(turn_count["value"], 2.0)
 
 
 if __name__ == "__main__":

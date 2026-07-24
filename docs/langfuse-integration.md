@@ -1,6 +1,6 @@
 # Langfuse Integration
 
-QuickVoice can emit Langfuse traces from the `apps/ai` LiveKit voice runtime. Each voice session creates a `quickvoice.voice_session` trace span with call metadata, model/provider selections, transcript turn events, and end-of-call evaluation events.
+QuickVoice can emit Langfuse traces from the `apps/ai` LiveKit voice runtime. Each voice session creates a `quickvoice.voice_session` trace span with call metadata, model/provider selections, transcript turn events, end-of-call evaluator observations, and native Langfuse scores.
 
 ## Enable Locally
 
@@ -23,7 +23,9 @@ Use `https://us.cloud.langfuse.com`, `https://jp.cloud.langfuse.com`, or a self-
 - call/session start with `callId`, `agentId`, `roomName`, direction, provider, and organization/user IDs
 - configured STT, LLM, and TTS providers/models
 - transcript turn events for user and agent messages
-- end status, duration, transcript turn count, and evaluation events
+- end status and duration
+- evaluator observations for completion and transcript turn count
+- native `call_completed` and `transcript_turn_count` scores for Langfuse score analytics
 
 ## Demo Flow
 

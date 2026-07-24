@@ -31,7 +31,7 @@ docs/langfuse-integration.md
 Say:
 
 ```text
-The integration is in the LiveKit AI worker. Each voice session creates a Langfuse trace with call metadata, model configuration, transcript turn observations, and completion/evaluation observations.
+The integration is in the LiveKit AI worker. Each voice session creates a Langfuse trace with call metadata, model configuration, transcript turn observations, evaluator observations, and native Langfuse scores.
 ```
 
 ## 3. Show Environment Configuration
@@ -97,6 +97,7 @@ provider/model metadata
 transcript.user and transcript.agent observations
 evaluation.call_completed with value true
 evaluation.transcript_turn_count
+Scores: call_completed and transcript_turn_count
 ```
 
 ## 6. Close
@@ -104,5 +105,5 @@ evaluation.transcript_turn_count
 Say:
 
 ```text
-This demonstrates Langfuse tracing and evaluation hooks added to QuickVoice's AI voice runtime, with safe defaults and a local verification path.
+This demonstrates Langfuse tracing and evaluation added to QuickVoice's AI voice runtime, including evaluator observations, native scores, safe defaults, and a local verification path.
 ```

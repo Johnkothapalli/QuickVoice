@@ -587,8 +587,13 @@ async def entrypoint(ctx: JobContext):
             agent=agent,
             room_options=build_room_options(),
         )
-    except Exception:
+    except Exception as error:
         await live_transcript_publisher.close(reason="session_start_failed")
+        langfuse_tracer.finalize(
+            transcript=transcript_collector.read(),
+            status="ERROR",
+            error=str(error),
+        )
         raise
     speak_first_message(session, config)
 
@@ -634,7 +639,7 @@ async def entrypoint(ctx: JobContext):
             )
             return
         langfuse_tracer.finalize(
-            transcript=[] if bool(config.get("zero_pii_retention")) else transcript_collector.read(),
+            transcript=transcript_collector.read(),
             status="COMPLETED",
         )
 
